@@ -243,4 +243,8 @@ Thumbs.db
 Tabela_De_Para_Para_Preencher.xlsx
 Tabela_De_Para_Preenchida.xlsx
 scripts/gsheets_data_extraction.py
-scripts/credentials.json
+credentials.json
+despesas_2014_a_2025.csv
+
+# Ignorar variáveis de ambiente (Senhas e Chaves)
+.env
