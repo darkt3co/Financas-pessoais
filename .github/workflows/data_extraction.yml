@@ -32,5 +32,5 @@ jobs:
         run: |
           echo "$GOOGLE_CREDENTIALS" > credentials.json
 
-      - name: 5. Executar o script ETL
-        run: python scripts/etl_atualizacao.py # Ajuste para o nome exato do seu script
+      - #name: 5. Executar o script ETL
+        #run: python scripts/etl_atualizacao.py # Ajuste para o nome exato do seu script
