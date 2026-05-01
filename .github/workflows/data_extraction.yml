@@ -19,18 +19,17 @@ jobs:
       - name: 2. Configurar o Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.14.2'
+          python-version: '3.14'
 
       - name: 3. Instalar bibliotecas
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: 4. Criar credenciais do Google temporariamente
+      - name: 4. Criar credenciais e rodar o script
         env:
           GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
+          MONGO_URI: ${{ secrets.MONGO_URI }}
         run: |
           echo "$GOOGLE_CREDENTIALS" > credentials.json
-
-      - name: 5. Executar o script ETL
-        run: python scripts/gsheets_data_extraction.py # Ajuste para o nome exato do seu script
+          python scripts/gsheets_data_extraction.py
