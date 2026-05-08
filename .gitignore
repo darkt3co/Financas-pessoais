@@ -216,6 +216,7 @@ data_raw/
 raw_data/
 extratos/
 prep_files/
+.vscode/
 
 # 2. Arquivos do Excel (Travas de segurança)
 # Evita subir planilhas de trabalho locais acidentalmente.

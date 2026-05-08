@@ -12,6 +12,10 @@ from pymongo import UpdateOne
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 
+def listar_abas():
+    # Retorna uma lista com os títulos de todas as abas da planilha
+    return [aba.title for aba in planilha.worksheets(exclude_hidden=True)]
+
 def acessar_planilha_gsheets():
     # Configurações para autenticação com o Google Sheets
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
@@ -22,23 +26,30 @@ def acessar_planilha_gsheets():
 
 def gerar_id_unico(linha):
     # Converte os dados para string e gera um código MD5
-    string_base = f"{linha['Data']}{linha['Descrição']}{linha['Valor']}"
+    string_base = f"{linha.name}{linha['Data']}{linha['Descrição']}{linha['Valor']}"
     return hashlib.md5(string_base.encode('utf-8')).hexdigest()
 
-def categorizar_despesas(despesas): # PENDENTE Criar o código para obter o caminho dentro do GitHub
+def categorizar_despesas(despesas):
+    # Obtemos o caminho do script no repositório
+    # e acessamos o arquivo de mapeamento
     script_path = os.path.dirname(os.path.abspath(__file__))
     mapping_path = os.path.join(script_path, 'cat_mapping.CSV')
 
-    # Armazenamos o dataframe
+    # Criamos o dataframe com o mapeamento
     mapping = pd.read_csv(mapping_path, sep=';', decimal='.', dtype=str)
 
-    # Criamos um dicionário a partir da tabela de correspondência
+    # Criamos um dicionário com o dataframe para consumo
+    # pela função map()
     mapping_dict = mapping.set_index('Descrição')['Categoria'].to_dict()
 
     # Criamos a coluna de categoria com base no mapeamento
     despesas['Categoria'] = despesas['Descrição'].map(mapping_dict)
 
 def gerar_dict_datas(ano):
+    # Para criação da coluna de data, precisamos de um
+    # dicionário que relacione os títulos das colunas
+    # com as datas que queremos inserir. O formato dos títulos
+    # muda a partir de 2016
     if ano < 2016:
         return {
             'Janeiro': f'01/01/{ano}',
@@ -71,9 +82,6 @@ def gerar_dict_datas(ano):
         }
 
 def extrair_2014_2015(ano):
-    #Conectar a planilha
-    planilha = acessar_planilha_gsheets()
-    
     # Acessar a aba de 2014
     plan = planilha.worksheet(str(ano))
 
@@ -84,7 +92,7 @@ def extrair_2014_2015(ano):
     headers = [h for h in headers if h.strip()]
 
     # importar os dados da planilha de 2014 somente dos cabeçalhos válidos
-    data = plan.get_all_records(expected_headers=headers)
+    data = plan.get_all_records(numericise_ignore=['all'], expected_headers=headers)
     df = pd.DataFrame(data)
 
     # Criamos uma lista vazia que irá abrigar os subconjuntos criados no loop
@@ -136,8 +144,12 @@ def extrair_2014_2015(ano):
     # Removemos as linhas onde temos descrição vazia
     despesas = despesas[despesas['Descrição'] != '']
 
-    # Definimos o tipo de operação pelo sinal do valor
-    despesas['Tipo'] = np.where(despesas['Valor'] < 0, 'D', 'R')
+    # Criamos a coluna Tipo a partir da coluna Código para diferenciar
+    # receitas e despesas
+    despesas['Tipo'] = despesas.case_when([
+        despesas['Valor'] < 0, 'D',
+        despesas['Valor'] >= 0, 'R'
+    ])
 
     # Convertemos de volta para valor para eliminação do sinal
     despesas['Valor'] = despesas['Valor'].astype(float).abs()
@@ -151,10 +163,7 @@ def extrair_2014_2015(ano):
     return despesas
 
 def extrair_2016_2018(ano):
-    #Conectar a planilha
-    planilha = acessar_planilha_gsheets()
-    
-    #Importamos os dados de 2018 da planilha e criamos o DataFrame
+    #Importamos os dados de 2016 a 2018 da planilha e criamos o DataFrame
     plan = planilha.worksheet(str(ano))
     data = plan.get_all_records(numericise_ignore=['all'])
     df = pd.DataFrame(data)
@@ -208,12 +217,14 @@ def extrair_2016_2018(ano):
     # Removemos as linhas onde temos descrição vazia
     despesas = despesas[despesas['Descrição'] != '']
 
-    #Criamos a coluna de tipo para diferenciar receitas e despesas
-    despesas['Tipo'] = np.where(despesas['Código'] == 'R', 'R', 'D')
-
-    #Valores positivos com código de despesa 'D' são classificados como 'RE' (Reembolso)
-    despesas['Tipo'] = np.where((despesas['Tipo'] == 'D') & (despesas['Valor'] > 0), 'RE', despesas['Tipo'])
-
+        # Criamos a coluna Tipo a partir da coluna Código para diferenciar
+    # receitas e despesas
+    despesas['Tipo'] = despesas.case_when([
+        despesas['Código'] == 'R', 'R',
+        (despesas['Código'] != 'R') & (despesas['Valor'] < 0), 'D',
+        (despesas['Código'] != 'R') & (despesas['Valor'] >= 0), 'RE',
+    ])
+    
     #Removemos a coluna de categoria pois não será mais necessária
     despesas = despesas.drop(columns=['Código'])
 
@@ -228,10 +239,7 @@ def extrair_2016_2018(ano):
 
     return despesas
 
-def extrair_2019_2025(ano):
-    #Conectar a planilha
-    planilha = acessar_planilha_gsheets()
-
+def extrair_2019(ano):
     # Importamos os dados do ano da planilha e criamos o DataFrame
     plan = planilha.worksheet(str(ano))
     data = plan.get_all_records(numericise_ignore=['all'])
@@ -307,10 +315,167 @@ def extrair_2019_2025(ano):
 
     return despesas
 
-def extrair_pos_2026(ano):
-    #Conectar a planilha
-    planilha = acessar_planilha_gsheets()
+def extrair_2020(ano):
+    # Importamos os dados do ano da planilha e criamos o DataFrame
+    plan = planilha.worksheet(str(ano))
+    data = plan.get_all_records(numericise_ignore=['all'])
+    df = pd.DataFrame(data)
 
+    # Vamos filtrar as linhas marcadas como cabeçalho utilizando a primeira
+    # coluna e então remover a coluna pois não será mais necessária
+    df = df.loc[df['C'] != 'C', :].iloc[:,1:]
+
+    # Criamos a lista e o dict de datas para criar a coluna posteriormente
+    subsets = []
+    map_datas = gerar_dict_datas(ano)
+
+    # O loop faz a divisão em subsets que são armazenados em uma lista
+    for mes , data_despesa in map_datas.items():
+
+        # Verificamos se o mês do dict existe entre as colunas do df do ano
+        if mes not in df.columns:
+            continue
+
+        # Encontramos o índice da coluna para usar de referência
+        i_col = df.columns.get_loc(mes)
+        subset = df.iloc[:, (i_col - 2):i_col + 1].copy()
+
+        # Criamos a coluna de data utilizando o dict criado anteriormente
+        subset['Data'] = data_despesa
+
+        # Renomeamos as colunas para padronizar com os outros anos
+        subset.rename(
+            columns={mes : 'Valor',
+                    f'DESC_{mes}':'Descrição',
+                    f'C_{mes}':'Código'},
+                    inplace=True
+                    )
+
+        # Armazenamos o subset na lista criada anteriormente
+        subsets.append(subset)
+
+    # Concatenamos a lista com os subsets em um único DataFrame
+    despesas = pd.concat(subsets, ignore_index=True)
+
+    # Convertemos a coluna de valor para numérico e tratamos os erros
+    despesas['Valor'] = pd.to_numeric(
+        despesas['Valor'].astype(str).str.replace(',', '.'),
+        errors='coerce'
+    )
+
+    # Realizamos a limpeza da coluna valor
+    despesas = despesas.dropna(subset=['Valor']) # Remove NA
+    despesas = despesas[despesas['Valor'] != ''] # Remove vazios
+    despesas = despesas[despesas['Valor'] != 0] # Remove zeros
+
+    # Realizamos a limpeza da coluna descrição
+    despesas = despesas[despesas['Descrição'] != '']
+
+    # Criamos a coluna Tipo a partir da coluna Código para diferenciar
+    # receitas e despesas
+    despesas['Tipo'] = despesas.case_when([
+        despesas['Código'] == 'R', 'R',
+        (despesas['Código'] == 'D') & (despesas['Valor'] < 0), 'RE',
+        (despesas['Código'] == 'D') & (despesas['Valor'] >= 0), 'D',
+        (despesas['Código'] == 'P') & (despesas['Valor'] >= 0), 'PSA',
+        (despesas['Código'] == 'P') & (despesas['Valor'] < 0), 'PDE',
+    ])
+
+    # Removemos a coluna de categoria pois não será mais necessária
+    despesas = despesas.drop(columns=['Código'])
+
+    # Transformamos os valores da coluna valor para positivos
+    despesas['Valor'] = despesas['Valor'].abs()
+
+    # Categorizamos as despesas
+    categorizar_despesas(despesas)
+
+    # Criamos o id único para cada linha
+    despesas['_id'] = despesas.apply(gerar_id_unico, axis=1)
+
+    return despesas
+
+def extrair_2021_2025(ano):
+    # Importamos os dados do ano da planilha e criamos o DataFrame
+    plan = planilha.worksheet(str(ano))
+    data = plan.get_all_records(numericise_ignore=['all'])
+    df = pd.DataFrame(data)
+
+    # Vamos filtrar as linhas marcadas como cabeçalho utilizando a primeira
+    # coluna e então remover a coluna pois não será mais necessária
+    df = df.loc[df['C'] != 'C', :].iloc[:,1:]
+
+    # Criamos a lista e o dict de datas para criar a coluna posteriormente
+    subsets = []
+    map_datas = gerar_dict_datas(ano)
+
+    # O loop faz a divisão em subsets que são armazenados em uma lista
+    for mes , data_despesa in map_datas.items():
+
+        # Verificamos se o mês do dict existe entre as colunas do df do ano
+        if mes not in df.columns:
+            continue
+
+        # Encontramos o índice da coluna para usar de referência
+        i_col = df.columns.get_loc(mes)
+        subset = df.iloc[:, (i_col - 2):i_col + 1].copy()
+
+        # Criamos a coluna de data utilizando o dict criado anteriormente
+        subset['Data'] = data_despesa
+
+        # Renomeamos as colunas para padronizar com os outros anos
+        subset.rename(
+            columns={mes : 'Valor',
+                    f'DESC_{mes}':'Descrição',
+                    f'C_{mes}':'Código'},
+                    inplace=True
+                    )
+
+        # Armazenamos o subset na lista criada anteriormente
+        subsets.append(subset)
+
+    # Concatenamos a lista com os subsets em um único DataFrame
+    despesas = pd.concat(subsets, ignore_index=True)
+
+    # Convertemos a coluna de valor para numérico e tratamos os erros
+    despesas['Valor'] = pd.to_numeric(
+        despesas['Valor'].astype(str).str.replace(',', '.'),
+        errors='coerce'
+    )
+
+    # Realizamos a limpeza da coluna valor
+    despesas = despesas.dropna(subset=['Valor']) # Remove NA
+    despesas = despesas[despesas['Valor'] != ''] # Remove vazios
+    despesas = despesas[despesas['Valor'] != 0] # Remove zeros
+
+    # Realizamos a limpeza da coluna descrição
+    despesas = despesas[despesas['Descrição'] != '']
+
+    # Criamos a coluna Tipo a partir da coluna Código para diferenciar
+    # receitas e despesas
+    despesas['Tipo'] = despesas.case_when([
+        despesas['Código'] == 'R', 'R',
+        (despesas['Código'] == 'D') & (despesas['Valor'] < 0), 'RE',
+        (despesas['Código'] == 'D') & (despesas['Valor'] >= 0), 'D',
+        (despesas['Código'] == 'P') & (despesas['Valor'] < 0), 'PSA',
+        (despesas['Código'] == 'P') & (despesas['Valor'] >= 0), 'PDE',
+    ])
+
+    # Removemos a coluna de categoria pois não será mais necessária
+    despesas = despesas.drop(columns=['Código'])
+
+    # Transformamos os valores da coluna valor para positivos
+    despesas['Valor'] = despesas['Valor'].abs()
+
+    # Categorizamos as despesas
+    categorizar_despesas(despesas)
+
+    # Criamos o id único para cada linha
+    despesas['_id'] = despesas.apply(gerar_id_unico, axis=1)
+
+    return despesas
+
+def extrair_pos_2026(ano):
     # Criamos o contâiner que irá armazenar os subsets
     subsets = []
     map_datas = gerar_dict_datas(ano)
@@ -381,12 +546,18 @@ def extrair_pos_2026(ano):
     return despesas
 
 def extrair_despesas_ano(ano):
+    # Criamos uma função geral que direciona para a função de
+    # extração correta de acordo com o ano
     if ano < 2016:
         return extrair_2014_2015(ano)
     elif ano < 2019:
         return extrair_2016_2018(ano)
+    elif ano == 2019:
+        return extrair_2019(ano)
+    elif ano == 2020:
+        return extrair_2020(ano)
     elif ano < 2026:
-        return extrair_2019_2025(ano)
+        return extrair_2021_2025(ano)
     else:
         return extrair_pos_2026(ano)
 
@@ -430,10 +601,12 @@ def carregar_dados_mongodb(df):
 
 if __name__ == "__main__":
     print("Iniciando Pipeline de Despesas Pessoais...\n")
+    print("Acessando a planilha do Google Sheets...")
+    planilha = acessar_planilha_gsheets()
     
     try:
 
-        for ano in range(2014, date.today().year):
+        for ano in listar_abas():
             print(f"Processando o ano de {ano}...")
             despesas = extrair_despesas_ano(ano)
             
