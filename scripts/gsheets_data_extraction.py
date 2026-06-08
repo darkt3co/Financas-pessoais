@@ -707,6 +707,14 @@ def carregar_dados_mongodb(df):
     db = client['Dashboard_Financas_Pessoais']
     collection = db["movimentações"]
 
+    # Extrai a lista de todos os IDs atuais da planilha
+    ids_planilha = df['_id'].tolist()
+    
+    # Remove do MongoDB todos os documentos cujos IDs não estão mais na planilha
+    print("Removendo registros excluídos ou modificados...")
+    resultado_delete = collection.delete_many({"_id": {"$nin": ids_planilha}})
+    print(f" -> Documentos removidos: {resultado_delete.deleted_count}")
+
     # Adiciona um carimbo de tempo para auditoria (quando o dado foi processado)
     df['Processado_em'] = datetime.now()
     
@@ -744,13 +752,15 @@ if __name__ == "__main__":
     planilha = acessar_planilha_gsheets()
     
     try:
-
+        todos_dados = []
         for ano in listar_abas():
             print(f"Processando o ano de {ano}...")
             despesas = extrair_despesas_ano(ano)
+            todos_dados.append(despesas)
             
-            print(f"Enviando ano de {ano} para a nuvem...")
-            carregar_dados_mongodb(despesas)
+        print("Consolidando dados e enviando para a nuvem...")
+        df_completo = pd.concat(todos_dados, ignore_index=True)
+        carregar_dados_mongodb(df_completo)
         
         print("\nPipeline finalizada com sucesso!")
         
