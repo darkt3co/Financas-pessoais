@@ -55,33 +55,33 @@ def gerar_dict_datas(ano):
     # muda a partir de 2016
     if ano < 2016:
         return {
-            'Janeiro': f'01/01/{ano}',
-            'Fevereiro': f'01/02/{ano}',
-            'Março': f'01/03/{ano}',
-            'Abril': f'01/04/{ano}',
-            'Maio': f'01/05/{ano}',
-            'Junho': f'01/06/{ano}',
-            'Julho': f'01/07/{ano}',
-            'Agosto': f'01/08/{ano}',
-            'Setembro': f'01/09/{ano}',
-            'Outubro': f'01/10/{ano}',
-            'Novembro': f'01/11/{ano}',
-            'Dezembro': f'01/12/{ano}'
+            'Janeiro': f'{ano}-01-01',
+            'Fevereiro': f'{ano}-02-01',
+            'Março': f'{ano}-03-01',
+            'Abril': f'{ano}-04-01',
+            'Maio': f'{ano}-05-01',
+            'Junho': f'{ano}-06-01',
+            'Julho': f'{ano}-07-01',
+            'Agosto': f'{ano}-08-01',
+            'Setembro': f'{ano}-09-01',
+            'Outubro': f'{ano}-10-01',
+            'Novembro': f'{ano}-11-01',
+            'Dezembro': f'{ano}-12-01'
         }
     else:
         return {
-            'JAN': f'01/01/{ano}',
-            'FEV': f'01/02/{ano}',
-            'MAR': f'01/03/{ano}',
-            'ABR': f'01/04/{ano}',
-            'MAI': f'01/05/{ano}',
-            'JUN': f'01/06/{ano}',
-            'JUL': f'01/07/{ano}',
-            'AGO': f'01/08/{ano}',
-            'SET': f'01/09/{ano}',
-            'OUT': f'01/10/{ano}',
-            'NOV': f'01/11/{ano}',
-            'DEZ': f'01/12/{ano}'
+            'JAN': f'{ano}-01-01',
+            'FEV': f'{ano}-02-01',
+            'MAR': f'{ano}-03-01',
+            'ABR': f'{ano}-04-01',
+            'MAI': f'{ano}-05-01',
+            'JUN': f'{ano}-06-01',
+            'JUL': f'{ano}-07-01',
+            'AGO': f'{ano}-08-01',
+            'SET': f'{ano}-09-01',
+            'OUT': f'{ano}-10-01',
+            'NOV': f'{ano}-11-01',
+            'DEZ': f'{ano}-12-01'
         }
 
 def extrair_2014_2015(ano):

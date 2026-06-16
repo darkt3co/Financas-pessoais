@@ -247,6 +247,7 @@ Tabela_De_Para_Preenchida.xlsx
 credentials.json
 despesas_2014_a_2025.csv
 teste_mongo.py
+secrets.toml
 
 # Ignorar variáveis de ambiente (Senhas e Chaves)
 .env
