@@ -870,7 +870,10 @@ if __name__ == "__main__":
 
     try:
         todos_dados = []
-        for ano in listar_abas():
+        for ano in list(range(date.today().year, date.today().year + 1)):
+            if planilha.worksheet(str(ano)) is None:
+                continue
+
             print(f"Processando o ano de {ano}...")
             provisoes = extrair_provisoes_ano(ano)
             todos_dados.append(provisoes)
