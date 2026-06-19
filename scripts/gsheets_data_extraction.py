@@ -700,12 +700,12 @@ def extrair_despesas_ano(ano):
     else:
         return extrair_pos_2026(ano)
 
-def carregar_dados_mongodb(df):
+def carregar_dados_mongodb(df,collection_name):
     # Conexão com o MongoDB Atlas
     connection_string = os.environ.get("MONGO_URI")
     client = MongoClient(connection_string, server_api=ServerApi('1'))
     db = client['Dashboard_Financas_Pessoais']
-    collection = db["movimentações"]
+    collection = db[collection_name]
 
     # Extrai a lista de todos os IDs atuais da planilha
     ids_planilha = df['_id'].tolist()
@@ -744,6 +744,107 @@ def carregar_dados_mongodb(df):
     else:
         print("Nenhum dado novo para processar.")
 
+def extrair_provisoes_ano(ano):
+    # Criamos o contâiner que irá armazenar os subsets
+    subsets = []
+    map_datas = gerar_dict_datas(ano)
+
+    # Importamos os dados do ano da planilha e criamos o DataFrame
+    plan = planilha.worksheet(str(ano))
+    data = plan.get_all_records(numericise_ignore=['all'])
+    raw = pd.DataFrame(data)
+
+    # Vamos filtrar as linhas marcadas como cabeçalho utilizando a primeira
+    # coluna e então remover a coluna pois não será mais necessária
+    raw = raw.loc[raw['C'] == 'P', :].iloc[:,1:]
+
+    # O loop faz a divisão em subsets que são armazenados em uma lista
+    for mes , data_despesa in map_datas.items():
+
+        # Encontramos o índice da coluna para usar de referência
+        i_col = raw.columns.get_loc(mes)
+        subset_df = raw.iloc[:, (i_col - 3):i_col + 1].copy()
+
+        # Criamos a coluna de data utilizando o dict criado anteriormente
+        subset_df['Data'] = data_despesa
+
+        # Renomeamos as colunas para padronizar com os outros anos
+        subset_df.rename(
+            columns={mes : 'Valor',
+                    f'DESC_{mes}':'Descrição',
+                    f'C_{mes}':'Código',
+                    f'CAT_{mes}':'Categoria'
+                    },
+                        inplace=True
+                        )
+        # Armazenamos o subset na lista criada anteriormente
+        subsets.append(subset_df)
+
+    # Concatenamos a lista com os subsets em um único DataFrame
+    provisoes = pd.concat(subsets, ignore_index=True)
+
+    # Convertemos a coluna de valor para numérico e tratamos os erros
+    provisoes['Valor'] = pd.to_numeric(
+        provisoes['Valor'].astype(str).str.replace(',', '.'),
+        errors='coerce'
+    )
+
+    # Realizamos a limpeza da coluna valor
+    provisoes = provisoes.dropna(subset=['Valor']) # Remove NA
+    provisoes = provisoes[provisoes['Valor'] != ''] # Remove vazios
+    provisoes = provisoes[provisoes['Valor'] != 0] # Remove zeros
+
+    # Realizamos a limpeza da coluna descrição
+    provisoes = provisoes[provisoes['Descrição'] != '']
+
+    # Criamos a coluna Tipo a partir da coluna Código para diferenciar
+    # receitas e provisoes
+    provisoes['Tipo'] = provisoes['Código'].case_when([
+        (
+            provisoes['Código'] == 'R',
+            'R'
+        ),
+
+        (
+            (provisoes['Código'] != 'R') & (provisoes['Código'] != 'P') & (provisoes['Valor'] < 0),
+            'RE'
+        ),
+        
+        (
+            (provisoes['Código'] != 'R') & (provisoes['Código'] != 'P') & (provisoes['Valor'] >= 0),
+            'D'
+        ),
+        
+        (
+            (provisoes['Código'] == 'P') & (provisoes['Valor'] < 0),
+            'PSA'
+        ),
+        
+        (
+            (provisoes['Código'] == 'P') & (provisoes['Valor'] >= 0),
+            'PDE'
+        )
+    ])
+
+    # Removemos a coluna de código pois não será mais necessária
+    provisoes = provisoes.drop(columns=['Código'])
+
+    # Transformamos os valores da coluna valor para positivos
+    provisoes['Valor'] = provisoes['Valor'].abs()
+
+    # Criamos o id único para cada linha
+    provisoes['_id'] = provisoes.apply(gerar_id_unico, axis=1)
+
+    provisoes = provisoes.astype({
+    'Valor': 'float',
+    'Descrição': 'string',
+    'Data': 'datetime64[ns]',
+    'Tipo': 'category',
+    'Categoria': 'string',
+    })
+
+    return provisoes
+
 # Fluxo de execução
 
 if __name__ == "__main__":
@@ -760,7 +861,23 @@ if __name__ == "__main__":
             
         print("Consolidando dados e enviando para a nuvem...")
         df_completo = pd.concat(todos_dados, ignore_index=True)
-        carregar_dados_mongodb(df_completo)
+        carregar_dados_mongodb(df = df_completo,collection_name = "movimentações")
+        
+        print("\nPipeline finalizada com sucesso!")
+        
+    except Exception as erro_fatal:
+        print(f"\nA pipeline falhou: {erro_fatal}")
+
+    try:
+        todos_dados = []
+        for ano in listar_abas():
+            print(f"Processando o ano de {ano}...")
+            provisoes = extrair_provisoes_ano(ano)
+            todos_dados.append(provisoes)
+            
+        print("Consolidando dados e enviando para a nuvem...")
+        df_completo = pd.concat(todos_dados, ignore_index=True)
+        carregar_dados_mongodb(df = df_completo,collection_name = "provisões")
         
         print("\nPipeline finalizada com sucesso!")
         
