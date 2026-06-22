@@ -623,12 +623,6 @@ def extrair_pos_2026(ano):
     # Concatenamos a lista com os subsets em um único DataFrame
     despesas = pd.concat(subsets, ignore_index=True)
 
-    # Convertemos a coluna de valor para numérico e tratamos os erros
-    despesas['Valor'] = pd.to_numeric(
-        despesas['Valor'].astype(str).str.replace(',', '.'),
-        errors='coerce'
-    )
-
     # Realizamos a limpeza da coluna valor
     despesas = despesas.dropna(subset=['Valor']) # Remove NA
     despesas = despesas[despesas['Valor'] != ''] # Remove vazios
@@ -784,12 +778,6 @@ def extrair_provisoes_ano(ano):
 
     # Concatenamos a lista com os subsets em um único DataFrame
     provisoes = pd.concat(subsets, ignore_index=True)
-
-    # Convertemos a coluna de valor para numérico e tratamos os erros
-    provisoes['Valor'] = pd.to_numeric(
-        provisoes['Valor'].astype(str).str.replace(',', '.'),
-        errors='coerce'
-    )
 
     # Realizamos a limpeza da coluna valor
     provisoes = provisoes.dropna(subset=['Valor']) # Remove NA
