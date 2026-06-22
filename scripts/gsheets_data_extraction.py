@@ -595,7 +595,8 @@ def extrair_pos_2026(ano):
 
     # Vamos filtrar as linhas marcadas como cabeçalho utilizando a primeira
     # coluna e então remover a coluna pois não será mais necessária
-    raw = raw.loc[raw['C'] != 'C', :].iloc[:,1:]
+    raw = raw.loc[ raw.iloc[:,0].astype(str).str.strip() != 'C', : ].iloc[:,1:]
+
 
     # O loop faz a divisão em subsets que são armazenados em uma lista
     for mes , data_despesa in map_datas.items():
@@ -756,7 +757,8 @@ def extrair_provisoes_ano(ano):
 
     # Vamos filtrar as linhas marcadas como cabeçalho utilizando a primeira
     # coluna e então remover a coluna pois não será mais necessária
-    raw = raw.loc[raw['C'] == 'P', :].iloc[:,1:]
+    raw = raw.loc[ raw.iloc[:,0].astype(str).str.strip() == 'P', : ].iloc[:,1:]
+
 
     # O loop faz a divisão em subsets que são armazenados em uma lista
     for mes , data_despesa in map_datas.items():
