@@ -132,6 +132,12 @@ def extrair_2014_2015(ano):
     # para consumo pela ferramenta de BI e deixamos a configuração de visualização
     # para a ferramenta de análise
 
+    # Convertemos a coluna de valor para numérico e tratamos os erros
+    despesas['Valor'] = pd.to_numeric(
+        despesas['Valor'].astype(str).str.replace('.', '').str.replace(',', '.'),
+        errors='coerce'
+    )
+
     # Realizamos a limpeza da coluna valor
     despesas = despesas.dropna(subset=['Valor']) # Remove NA
     despesas = despesas[despesas['Valor'] != ''] # Remove vazios
@@ -211,6 +217,12 @@ def extrair_2016_2018(ano):
 
     #Concatenamos a lista com os subsets em um único DataFrame
     despesas = pd.concat(subsets, ignore_index=True)
+
+    #Convertemos a coluna de valor para numérico e tratamos os erros
+    despesas['Valor'] = pd.to_numeric(
+        despesas['Valor'].astype(str).str.replace('.', '').str.replace(',', '.'),
+        errors='coerce'
+    )
 
     # Realizamos a limpeza da coluna valor
     despesas = despesas.dropna(subset=['Valor']) # Remove NA
@@ -303,6 +315,11 @@ def extrair_2019(ano):
     # Concatenamos a lista com os subsets em um único DataFrame
     despesas = pd.concat(subsets, ignore_index=True)
 
+    # Convertemos a coluna de valor para numérico e tratamos os erros
+    despesas['Valor'] = pd.to_numeric(
+        despesas['Valor'].astype(str).str.replace('.', '').str.replace(',', '.'),
+        errors='coerce'
+    )
 
     # Realizamos a limpeza da coluna valor
     despesas = despesas.dropna(subset=['Valor']) # Remove NA
@@ -392,6 +409,12 @@ def extrair_2020(ano):
 
     # Concatenamos a lista com os subsets em um único DataFrame
     despesas = pd.concat(subsets, ignore_index=True)
+
+    # Convertemos a coluna de valor para numérico e tratamos os erros
+    despesas['Valor'] = pd.to_numeric(
+        despesas['Valor'].astype(str).str.replace('.', '').str.replace(',', '.'),
+        errors='coerce'
+    )
 
     # Realizamos a limpeza da coluna valor
     despesas = despesas.dropna(subset=['Valor']) # Remove NA
@@ -494,6 +517,12 @@ def extrair_2021_2025(ano):
     # Concatenamos a lista com os subsets em um único DataFrame
     despesas = pd.concat(subsets, ignore_index=True)
 
+    # Convertemos a coluna de valor para numérico e tratamos os erros
+    despesas['Valor'] = pd.to_numeric(
+        despesas['Valor'].astype(str).str.replace('.', '').str.replace(',', '.'),
+        errors='coerce'
+    )
+
     # Realizamos a limpeza da coluna valor
     despesas = despesas.dropna(subset=['Valor']) # Remove NA
     despesas = despesas[despesas['Valor'] != ''] # Remove vazios
@@ -592,6 +621,12 @@ def extrair_pos_2026(ano):
 
     # Concatenamos a lista com os subsets em um único DataFrame
     despesas = pd.concat(subsets, ignore_index=True)
+
+    # Convertemos a coluna de valor para numérico e tratamos os erros
+    despesas['Valor'] = pd.to_numeric(
+        despesas['Valor'].astype(str).str.replace('.', '').str.replace(',', '.'),
+        errors='coerce'
+    )
 
     # Realizamos a limpeza da coluna valor
     despesas = despesas.dropna(subset=['Valor']) # Remove NA
@@ -748,6 +783,12 @@ def extrair_provisoes_ano(ano):
 
     # Concatenamos a lista com os subsets em um único DataFrame
     provisoes = pd.concat(subsets, ignore_index=True)
+
+    # Convertemos a coluna de valor para numérico e tratamos os erros
+    provisoes['Valor'] = pd.to_numeric(
+        provisoes['Valor'].astype(str).str.replace('.', '').str.replace(',', '.'),
+        errors='coerce'
+    )
 
     # Realizamos a limpeza da coluna valor
     provisoes = provisoes.dropna(subset=['Valor']) # Remove NA
