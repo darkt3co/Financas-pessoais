@@ -248,6 +248,7 @@ credentials.json
 despesas_2014_a_2025.csv
 teste_mongo.py
 secrets.toml
-
+*.ipynb
+.streamlit/
 # Ignorar variáveis de ambiente (Senhas e Chaves)
 .env
