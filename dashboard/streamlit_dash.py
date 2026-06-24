@@ -57,10 +57,11 @@ else:
     mes_atual = datetime.today().month
     ano_atual = datetime.today().year
     df_provisao['Data'] = pd.to_datetime(df_provisao['Data']).dt.date
-    df_provisao = df_provisao.loc[df_provisao['Data'] == date(ano_atual, mes_atual+1, 1)]
 
     st.subheader("Provisões para o próximo mês")
-    st.write(df_provisao[['Categoria','Data','Valor']])
+    mes = st.number_input("Selecione o mês", min_value=1, max_value=12, value=mes_atual+1, disabled=False)
+    df_provisao = df_provisao.loc[df_provisao['Data'] == date(ano_atual, mes, 1)]
+    st.dataframe(df_provisao[['Categoria','Data','Valor']],hide_index=True)
 
     # 2. Preparação do Dado para o Gráfico Nativo do Streamlit
     # O Streamlit exige que o eixo X seja o índice e as colunas sejam as categorias.
