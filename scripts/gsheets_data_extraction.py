@@ -793,7 +793,6 @@ def extrair_provisoes_ano(ano):
     # Realizamos a limpeza da coluna valor
     provisoes = provisoes.dropna(subset=['Valor']) # Remove NA
     provisoes = provisoes[provisoes['Valor'] != ''] # Remove vazios
-    provisoes = provisoes[provisoes['Valor'] != 0] # Remove zeros
 
     # Realizamos a limpeza da coluna descrição
     provisoes = provisoes[provisoes['Descrição'] != '']

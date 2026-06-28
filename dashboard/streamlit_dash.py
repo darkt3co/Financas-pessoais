@@ -45,24 +45,65 @@ def buscar_dados_provisao():
         st.error(f"Erro ao conectar ao MongoDB: {e}")
         return pd.DataFrame()
 
-# --- INTERFACE PRINCIPAL ---
-st.title("💸 Dash despesas pessoais")
+# Título principal
+st.title("Minhas despesas")
 
+# Obtenção dos dados
 df_evolucao = buscar_dados_evolucao()
 df_provisao = buscar_dados_provisao()
 
-if df_evolucao.empty:
+if df_evolucao.empty | df_provisao.empty:
     st.warning("Nenhum dado encontrado na view ou erro de conexão.")
 else:
+    # Obtenção do mês e ano atual para filtrar as provisões
     mes_atual = datetime.today().month
     ano_atual = datetime.today().year
+
+    # Conversão da coluna 'Data' para filtro
     df_provisao['Data'] = pd.to_datetime(df_provisao['Data']).dt.date
 
+    # Subtítulo
     st.subheader("Provisões para o próximo mês")
-    mes = st.number_input("Selecione o mês", min_value=1, max_value=12, value=mes_atual+1, disabled=False)
+    
+    # Criamos o input de mês para seleção pelo usuário
+    col1, col2 = st.columns([0.3,0.7])
+    with col1:
+        mes = st.number_input("Selecione o mês", min_value=1, max_value=12, value=mes_atual+1, disabled=False)
     df_provisao = df_provisao.loc[df_provisao['Data'] == date(ano_atual, mes, 1)]
-    st.dataframe(df_provisao[['Categoria','Data','Valor']],hide_index=True)
-
+    # st.dataframe(df_provisao[['Categoria','Data','Valor']],hide_index=True)
+    met_col1, met_col2, met_col3 = st.columns(3)
+    with met_col1:
+        st.metric(
+            label=df_provisao['Categoria'].iloc[0],
+            value=df_provisao['Valor'].iloc[0],
+            border=True)
+        st.metric(
+            label=df_provisao['Categoria'].iloc[3],
+            value=df_provisao['Valor'].iloc[3],
+            border=True)
+        st.metric(
+            label=df_provisao['Categoria'].iloc[4],
+            value=df_provisao['Valor'].iloc[4],
+            border=True)
+    with met_col2:
+        st.metric(
+            label=df_provisao['Categoria'].iloc[1],
+            value=df_provisao['Valor'].iloc[1],
+            border=True)
+        st.metric(
+            label=df_provisao['Categoria'].iloc[4],
+            value=df_provisao['Valor'].iloc[4],
+            border=True)
+        st.metric(
+            label=df_provisao['Categoria'].iloc[6],
+            value=df_provisao['Valor'].iloc[6],
+            border=True)
+    with met_col3:
+        st.metric(
+            label=df_provisao['Categoria'].iloc[2],
+            value=df_provisao['Valor'].iloc[2],
+            border=True)
+                   
     # 2. Preparação do Dado para o Gráfico Nativo do Streamlit
     # O Streamlit exige que o eixo X seja o índice e as colunas sejam as categorias.
     # O comando pivot_table faz exatamente essa transformação (Matriz)
