@@ -69,40 +69,44 @@ else:
     col1, col2 = st.columns([0.3,0.7])
     with col1:
         mes = st.number_input("Selecione o mês", min_value=1, max_value=12, value=mes_atual+1, disabled=False)
-    df_provisao = df_provisao.loc[df_provisao['Data'] == date(ano_atual, mes, 1)]
+    df_provisao_mes = df_provisao.loc[df_provisao['Data'] == date(ano_atual, mes, 1)]
     # st.dataframe(df_provisao[['Categoria','Data','Valor']],hide_index=True)
-    met_col1, met_col2, met_col3 = st.columns(3)
-    with met_col1:
-        st.metric(
-            label=df_provisao['Categoria'].iloc[0],
-            value=df_provisao['Valor'].iloc[0],
-            border=True)
-        st.metric(
-            label=df_provisao['Categoria'].iloc[3],
-            value=df_provisao['Valor'].iloc[3],
-            border=True)
-        st.metric(
-            label=df_provisao['Categoria'].iloc[4],
-            value=df_provisao['Valor'].iloc[4],
-            border=True)
-    with met_col2:
-        st.metric(
-            label=df_provisao['Categoria'].iloc[1],
-            value=df_provisao['Valor'].iloc[1],
-            border=True)
-        st.metric(
-            label=df_provisao['Categoria'].iloc[4],
-            value=df_provisao['Valor'].iloc[4],
-            border=True)
-        st.metric(
-            label=df_provisao['Categoria'].iloc[6],
-            value=df_provisao['Valor'].iloc[6],
-            border=True)
-    with met_col3:
-        st.metric(
-            label=df_provisao['Categoria'].iloc[2],
-            value=df_provisao['Valor'].iloc[2],
-            border=True)
+    
+    if df_provisao_mes.empty:
+        st.warning("Nenhuma provisão encontrada para o mês selecionado.")
+    else:
+        met_col1, met_col2, met_col3 = st.columns(3)
+        with met_col1:
+            st.metric(
+                label=df_provisao_mes['Categoria'].iloc[0],
+                value=df_provisao_mes['Valor'].iloc[0],
+                border=True)
+            st.metric(
+                label=df_provisao_mes['Categoria'].iloc[3],
+                value=df_provisao_mes['Valor'].iloc[3],
+                border=True)
+            st.metric(
+                label=df_provisao_mes['Categoria'].iloc[5],
+                value=df_provisao_mes['Valor'].iloc[5],
+                border=True)
+        with met_col2:
+            st.metric(
+                label=df_provisao_mes['Categoria'].iloc[1],
+                value=df_provisao_mes['Valor'].iloc[1],
+                border=True)
+            st.metric(
+                label=df_provisao_mes['Categoria'].iloc[4],
+                value=df_provisao_mes['Valor'].iloc[4],
+                border=True)
+            st.metric(
+                label=df_provisao_mes['Categoria'].iloc[6],
+                value=df_provisao_mes['Valor'].iloc[6],
+                border=True)
+        with met_col3:
+            st.metric(
+                label=df_provisao_mes['Categoria'].iloc[2],
+                value=df_provisao_mes['Valor'].iloc[2],
+                border=True)
                    
     # 2. Preparação do Dado para o Gráfico Nativo do Streamlit
     # O Streamlit exige que o eixo X seja o índice e as colunas sejam as categorias.
@@ -121,13 +125,29 @@ else:
     # 4. Filtro Interativo (Opcional - Bom para detalhamento)
     st.subheader("Detalhamento por Mês")
     meses_disponiveis = sorted(df_evolucao["Periodo"].unique(), reverse=True)
-    mes_selecionado = st.selectbox("Selecione o mês para analisar:", meses_disponiveis)
+    index_mes_atual = meses_disponiveis.index(f"{ano_atual}-{mes_atual:02d}")   
+    mes_selecionado = st.selectbox("Selecione o mês para analisar:",
+                                   meses_disponiveis,
+                                   index=index_mes_atual)
 
     # Filtra o dataframe baseado na escolha do usuário no celular
     df_mes = df_evolucao[df_evolucao["Periodo"] == mes_selecionado]
     
     # Formata para exibição em tabela
     df_tabela = df_mes[["Categoria", "Total_Gasto"]].copy()
-    df_tabela["Total_Gasto"] = df_tabela["Total_Gasto"].apply(lambda x: f"R$ {x:,.2f}")
+    df_tabela["Total_Gasto"] = df_tabela["Total_Gasto"].astype(float)
     
-    st.dataframe(df_tabela, use_container_width=True, hide_index=True)
+    st.bar_chart(df_tabela,
+                 x="Categoria",
+                 y="Total_Gasto",
+                 use_container_width=True,
+                 sort="Total_Gasto")
+    st.dataframe(df_tabela.sort_values("Total_Gasto", ascending=False),
+                 use_container_width=True,
+                 hide_index=True,
+                 on_select='ignore',
+                 column_config={"Total_Gasto": st.column_config.NumberColumn(
+                     "Total",
+                     format="%.2f",
+                     help="Total gasto na categoria selecionada"
+                 )})
