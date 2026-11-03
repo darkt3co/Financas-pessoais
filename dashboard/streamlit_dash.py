@@ -6,6 +6,15 @@ from datetime import date
 
 st.set_page_config(page_title="Dashboard Financeiro", page_icon="💸", layout="centered")
 
+MESES_ABREVIADOS = ["jan", "fev", "mar", "abr", "mai", "jun",
+                    "jul", "ago", "set", "out", "nov", "dez"]
+
+def formatar_mmm_aa(data):
+    return f"{MESES_ABREVIADOS[data.month - 1]}/{data.year % 100:02d}"
+
+def formatar_periodo(periodo):
+    return formatar_mmm_aa(datetime.strptime(periodo, "%Y-%m"))
+
 # Busca dos dados na VIEW com Cache de 10 minutos
 @st.cache_data(ttl=600)
 def buscar_dados_evolucao():
@@ -68,8 +77,14 @@ else:
     # Criamos o input de mês para seleção pelo usuário
     col1, col2 = st.columns([0.3,0.7])
     with col1:
-        mes = st.number_input("Selecione o mês", min_value=1, max_value=12, value=mes_atual+1, disabled=False)
-    df_provisao_mes = df_provisao.loc[df_provisao['Data'] == date(ano_atual, mes, 1)]
+        datas_provisao = sorted(df_provisao['Data'].unique())
+        proximo_mes = date(ano_atual + (mes_atual == 12), mes_atual % 12 + 1, 1)
+        index_provisao = datas_provisao.index(proximo_mes) if proximo_mes in datas_provisao else 0
+        mes_provisao = st.selectbox("Selecione o mês",
+                                    datas_provisao,
+                                    index=index_provisao,
+                                    format_func=formatar_mmm_aa)
+    df_provisao_mes = df_provisao.loc[df_provisao['Data'] == mes_provisao]
     # st.dataframe(df_provisao[['Categoria','Data','Valor']],hide_index=True)
     
     if df_provisao_mes.empty:
@@ -79,33 +94,33 @@ else:
         with met_col1:
             st.metric(
                 label=df_provisao_mes['Categoria'].iloc[0],
-                value=df_provisao_mes['Valor'].iloc[0],
+                value=df_provisao_mes['Valor'].iloc[0].astype(float),
                 border=True)
             st.metric(
                 label=df_provisao_mes['Categoria'].iloc[3],
-                value=df_provisao_mes['Valor'].iloc[3],
+                value=df_provisao_mes['Valor'].iloc[3].astype(float),
                 border=True)
             st.metric(
                 label=df_provisao_mes['Categoria'].iloc[5],
-                value=df_provisao_mes['Valor'].iloc[5],
+                value=df_provisao_mes['Valor'].iloc[5].astype(float),
                 border=True)
         with met_col2:
             st.metric(
                 label=df_provisao_mes['Categoria'].iloc[1],
-                value=df_provisao_mes['Valor'].iloc[1],
+                value=df_provisao_mes['Valor'].iloc[1].astype(float),
                 border=True)
             st.metric(
                 label=df_provisao_mes['Categoria'].iloc[4],
-                value=df_provisao_mes['Valor'].iloc[4],
+                value=df_provisao_mes['Valor'].iloc[4].astype(float),
                 border=True)
             st.metric(
                 label=df_provisao_mes['Categoria'].iloc[6],
-                value=df_provisao_mes['Valor'].iloc[6],
+                value=df_provisao_mes['Valor'].iloc[6].astype(float),
                 border=True)
         with met_col3:
             st.metric(
                 label=df_provisao_mes['Categoria'].iloc[2],
-                value=df_provisao_mes['Valor'].iloc[2],
+                value=df_provisao_mes['Valor'].iloc[2].astype(float),
                 border=True)
                    
     # 2. Preparação do Dado para o Gráfico Nativo do Streamlit
@@ -118,9 +133,15 @@ else:
         aggfunc="sum"
     ).fillna(0) # Preenche meses sem gastos na categoria com 0
 
+    # Formata o eixo X no padrão mmm/aa mantendo a ordem cronológica
+    df_pivot.index = [formatar_periodo(periodo) for periodo in df_pivot.index]
+
     # 3. Exibição do Gráfico de Barras Empilhadas (Excelente para Mobile)
     st.subheader("Gastos Mensais por Categoria")
-    st.bar_chart(df_pivot)
+    st.bar_chart(df_pivot,
+                 x_label="Mês",
+                 y_label="Total Gasto",
+                 sort=False)
 
     # 4. Filtro Interativo (Opcional - Bom para detalhamento)
     st.subheader("Detalhamento por Mês")
@@ -128,7 +149,8 @@ else:
     index_mes_atual = meses_disponiveis.index(f"{ano_atual}-{mes_atual:02d}")   
     mes_selecionado = st.selectbox("Selecione o mês para analisar:",
                                    meses_disponiveis,
-                                   index=index_mes_atual)
+                                   index=index_mes_atual,
+                                   format_func=formatar_periodo)
 
     # Filtra o dataframe baseado na escolha do usuário no celular
     df_mes = df_evolucao[df_evolucao["Periodo"] == mes_selecionado]
@@ -139,7 +161,9 @@ else:
     
     st.bar_chart(df_tabela,
                  x="Categoria",
+                 x_label="Categoria",
                  y="Total_Gasto",
+                 y_label="Total Gasto",
                  use_container_width=True,
                  sort="Total_Gasto")
     st.dataframe(df_tabela.sort_values("Total_Gasto", ascending=False),
